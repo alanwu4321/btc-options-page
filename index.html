@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #09090b;
+  --surface: #111113;
+  --surface2: #161618;
+  --divider: rgba(255,255,255,0.06);
+  --text: #dcdcde;
+  --text-sec: #7a7a82;
+  --text-dim: #44444c;
+  --accent: #7c80f0;
+  --red: #ef4444;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --blue: #3b82f6;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+::selection { background: rgba(124,128,240,0.15); }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+.container { max-width: 1400px; margin: 0 auto; padding: 0 24px 60px; }
+
+/* ─── Header ─── */
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
+  padding: 10px 24px;
+}
+.header-inner {
+  max-width: 1400px; margin: 0 auto;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.logo {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase;
+}
+.currency-tabs { display: flex; gap: 2px; }
+.currency-tab {
+  background: none; border: none; color: var(--text-dim);
+  padding: 4px 12px; font-size: 12px; font-weight: 500;
+  font-family: var(--mono); cursor: pointer; transition: color 0.1s;
+}
+.currency-tab:hover { color: var(--text-sec); }
+.currency-tab.active { color: var(--text); background: var(--surface2); }
+.header-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.btn-export {
+  background: none; border: 1px solid var(--divider); color: var(--text-dim);
+  padding: 3px 10px; font-size: 11px; font-family: var(--mono);
+  cursor: pointer; transition: color 0.1s;
+}
+.btn-export:hover { color: var(--text-sec); border-color: rgba(255,255,255,0.12); }
+.ts { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+
+/* ─── Hero ─── */
+.hero { padding: 24px 0 16px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.spot-price { font-size: 36px; font-weight: 600; font-family: var(--mono); letter-spacing: -1px; }
+.spot-currency { font-size: 14px; color: var(--text-sec); font-weight: 500; margin-right: 4px; }
+.hero-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tag {
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+  padding: 2px 6px; letter-spacing: 0.3px; text-transform: uppercase;
+}
+.tag-bull { color: var(--green); background: rgba(34,197,94,0.1); }
+.tag-bear { color: var(--red); background: rgba(239,68,68,0.1); }
+.tag-neut { color: var(--yellow); background: rgba(234,179,8,0.08); }
+.tag-info { color: var(--text-sec); background: rgba(255,255,255,0.04); }
+
+/* ─── Signals ─── */
+.signals { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 20px; }
+.sig {
+  font-size: 10px; font-family: var(--mono); padding: 2px 6px;
+  color: var(--text-dim); background: rgba(255,255,255,0.02);
+}
+.sig::before { content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.sig.bull::before { background: var(--green); }
+.sig.bear::before { background: var(--red); }
+.sig.neut::before { background: var(--text-dim); }
+.sig.bull { color: var(--green); }
+.sig.bear { color: var(--red); }
+
+/* ─── Metrics Row ─── */
+.metrics {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 1px; background: var(--divider); margin-bottom: 20px;
+}
+.m-cell { background: var(--bg); padding: 12px 14px; }
+.m-label { font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; font-family: var(--mono); }
+.m-val { font-size: 20px; font-weight: 600; font-family: var(--mono); letter-spacing: -0.5px; }
+.m-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; font-family: var(--mono); }
+.m-sub.up { color: var(--green); }
+.m-sub.down { color: var(--red); }
+
+/* ─── Key Levels ─── */
+.levels-section { margin-bottom: 20px; padding: 16px 0; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
+.levels-title { font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; font-family: var(--mono); }
+.levels-track { position: relative; height: 80px; margin: 0 40px; }
+.levels-line { position: absolute; top: 40px; left: 0; right: 0; height: 1px; background: var(--divider); }
+.lm {
+  position: absolute; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; z-index: 2;
+}
+.lm.above { top: 0; }
+.lm.below { top: 45px; }
+.lm-tick { width: 1px; height: 12px; }
+.lm-price { font-size: 11px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
+.lm-name { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--mono); white-space: nowrap; }
+.lm.above .lm-tick { order: 2; }
+.lm.above .lm-price { order: 0; }
+.lm.above .lm-name { order: 1; margin-bottom: -2px; }
+.lm.below .lm-tick { order: 0; }
+.lm.below .lm-name { order: 1; margin-top: -2px; }
+.lm.below .lm-price { order: 2; }
+
+/* ─── Grid ─── */
+.grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 1px; background: var(--divider); margin-bottom: 1px;
+}
+.panel {
+  background: var(--bg); padding: 18px 20px;
+}
+.panel.full { grid-column: 1 / -1; }
+.p-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.p-title { font-size: 11px; font-weight: 600; font-family: var(--mono); color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+.p-tag { font-size: 9px; font-weight: 600; font-family: var(--mono); padding: 1px 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+.p-note { font-size: 10px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; font-family: var(--mono); }
+.p-note b { color: var(--text-sec); font-weight: 500; }
+.p-explain { font-size: 10px; color: var(--text-dim); margin-top: 8px; line-height: 1.6; font-family: var(--sans); padding-top: 8px; border-top: 1px solid var(--divider); }
+.p-explain b { color: var(--text-sec); font-weight: 500; }
+.p-formula { font-family: var(--mono); font-size: 9px; color: var(--text-dim); background: var(--surface); padding: 4px 8px; margin: 4px 0; display: inline-block; }
+.p-src { font-size: 9px; color: var(--text-dim); font-family: var(--mono); margin-top: 4px; }
+.chart-box { position: relative; height: 240px; }
+.chart-box.short { height: 200px; }
+
+/* ─── IVT Bars ─── */
+.ivt-r { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.ivt-exp { font-size: 10px; color: var(--text-sec); font-family: var(--mono); min-width: 72px; }
+.ivt-d { font-size: 9px; color: var(--text-dim); font-family: var(--mono); min-width: 28px; text-align: right; }
+.ivt-bw { flex: 1; height: 14px; background: rgba(255,255,255,0.02); }
+.ivt-b { height: 100%; }
+.ivt-v { font-size: 10px; font-family: var(--mono); color: var(--text); min-width: 42px; text-align: right; }
+
+/* ─── Wall Bars ─── */
+.w-sec { font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 0 4px; font-family: var(--mono); }
+.w-sec:first-child { margin-top: 0; }
+.w-r { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.w-s { font-size: 10px; font-family: var(--mono); color: var(--text-sec); min-width: 72px; text-align: right; }
+.w-bw { flex: 1; height: 12px; background: rgba(255,255,255,0.02); }
+.w-b { height: 100%; min-width: 2px; }
+.w-b.c { background: var(--green); }
+.w-b.p { background: var(--red); }
+.w-o { font-size: 9px; font-family: var(--mono); color: var(--text-dim); min-width: 50px; }
+.w-pct { font-size: 9px; font-family: var(--mono); min-width: 42px; text-align: right; }
+
+/* ─── Stat Blocks ─── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--divider); margin: 8px 0; }
+.stat-cell { background: var(--surface); padding: 12px; text-align: center; }
+.stat-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--mono); margin-bottom: 4px; }
+.stat-val { font-size: 22px; font-weight: 600; font-family: var(--mono); }
+.stat-sub { font-size: 10px; color: var(--text-dim); margin-top: 4px; font-family: var(--mono); }
+.stat-wide { grid-column: 1 / -1; }
+
+/* ─── Tables ─── */
+.tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tbl { width: 100%; border-collapse: collapse; min-width: 500px; }
+.tbl th {
+  text-align: left; font-size: 9px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--mono);
+  padding: 6px 8px; border-bottom: 1px solid var(--divider);
+}
+.tbl td {
+  padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.02);
+  font-family: var(--mono); font-size: 10px; color: var(--text-sec);
+}
+.tbl tr:hover td { background: rgba(255,255,255,0.01); }
+.tbl .r { text-align: right; }
+.up { color: var(--green); }
+.dn { color: var(--red); }
+
+/* ─── Loading ─── */
+.loading { display: flex; align-items: center; justify-content: center; min-height: 300px; flex-direction: column; gap: 12px; }
+.spinner { width: 24px; height: 24px; border: 2px solid var(--divider); border-top-color: var(--text-dim); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+.error-box { background: rgba(239,68,68,0.06); padding: 20px; text-align: center; color: var(--red); margin: 40px 0; font-family: var(--mono); font-size: 12px; }
+
+/* ─── Snapshot ─── */
+.snap-bar { background: rgba(124,128,240,0.06); padding: 6px 12px; font-size: 10px; color: var(--accent); font-family: var(--mono); margin-bottom: 12px; display: none; }
+.snap-bar.on { display: block; }
+
+/* ─── Responsive ─── */
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .container { padding: 0 16px 60px; }
+  .metrics { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Small tablet / large phone */
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(3, 1fr); }
+  .spot-price { font-size: 28px; }
+  .hero { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .levels-track { margin: 0 24px; }
+  .lm-price { font-size: 10px; }
+  .lm-name { font-size: 7px; }
+  .stat-val { font-size: 18px; }
+}
+
+/* Phone */
+@media (max-width: 600px) {
+  .container { padding: 0 10px 40px; }
+  .header { padding: 8px 10px; }
+  .header-inner { gap: 8px; }
+  .logo { font-size: 11px; }
+  .currency-tabs { gap: 1px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .currency-tab { padding: 4px 10px; font-size: 11px; flex-shrink: 0; }
+  .header-right { gap: 6px; }
+  .ts { font-size: 9px; }
+  .btn-export { font-size: 10px; padding: 3px 8px; }
+
+  .hero { padding: 16px 0 12px; }
+  .spot-price { font-size: 22px; }
+  .spot-currency { font-size: 12px; }
+  .hero-tags { gap: 4px; }
+  .tag { font-size: 9px; padding: 2px 5px; }
+
+  .signals { gap: 3px; }
+  .sig { font-size: 9px; padding: 2px 5px; }
+
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .m-cell { padding: 10px 10px; }
+  .m-label { font-size: 8px; }
+  .m-val { font-size: 16px; }
+  .m-sub { font-size: 9px; }
+
+  .levels-section { padding: 12px 0; }
+  .levels-track { height: 70px; margin: 0 10px; }
+  .lm-price { font-size: 9px; }
+  .lm-name { font-size: 6px; letter-spacing: 0.3px; }
+  .lm-tick { height: 8px; }
+
+  .panel { padding: 14px 12px; }
+  .p-title { font-size: 10px; }
+  .p-tag { font-size: 8px; }
+  .p-note { font-size: 9px; }
+  .p-explain { font-size: 9px; }
+  .p-formula { font-size: 8px; padding: 3px 6px; }
+
+  .chart-box { height: 170px; }
+  .chart-box.short { height: 150px; }
+
+  .ivt-r { gap: 4px; }
+  .ivt-exp { font-size: 9px; min-width: 60px; }
+  .ivt-d { font-size: 8px; min-width: 22px; }
+  .ivt-bw { height: 12px; }
+  .ivt-v { font-size: 9px; min-width: 36px; }
+
+  .w-r { gap: 4px; }
+  .w-s { font-size: 9px; min-width: 60px; }
+  .w-bw { height: 10px; }
+  .w-o { font-size: 8px; min-width: 40px; }
+  .w-pct { font-size: 8px; min-width: 36px; }
+  .w-sec { font-size: 8px; }
+
+  .stat-val { font-size: 16px; }
+  .stat-label { font-size: 8px; }
+  .stat-sub { font-size: 9px; }
+  .stat-cell { padding: 10px 8px; }
+
+  .tbl th { font-size: 8px; padding: 5px 4px; }
+  .tbl td { font-size: 9px; padding: 4px 4px; }
+}
+
+/* Very small phone */
+@media (max-width: 380px) {
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .m-val { font-size: 14px; }
+  .spot-price { font-size: 20px; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .stat-wide { grid-column: auto; }
+  .levels-track { margin: 0 6px; }
+  .lm-price { font-size: 8px; }
+}
+</style>
+<script>window.__SNAPSHOT__ = {"currency": "BTC", "is_usdc": false, "generated_at": "2026-03-20 22:49 UTC", "summary": {"sentiment": "neutral", "regime": "positive_gamma", "bullish_count": 3, "bearish_count": 3, "signals": [{"direction": "bearish", "label": "RR25d -5.4% \u2014 puts premium"}, {"direction": "bullish", "label": "P/C 0.66 \u2014 call-heavy positioning"}, {"direction": "bullish", "label": "Above gamma flip \u2014 moves dampened"}, {"direction": "bearish", "label": "Put skew +10.6% \u2014 downside fear"}, {"direction": "bearish", "label": "Net short delta exposure"}, {"direction": "bullish", "label": "Smart money buying calls"}, {"direction": "neutral", "label": "IV contango \u2014 normal term structure"}], "key_levels": {"max_pain": 75000.0, "gex_flip": 66658.49, "call_gamma_wall": 75000.0, "put_gamma_wall": 70000.0, "nearest_call_wall": 75000.0, "nearest_put_wall": 70000.0}}, "spot": 72559.54, "top_expiry": "27MAR26", "atm_iv": 49.8, "total_contracts": 964, "max_pain": {"max_pain": 75000.0, "expiry": "27MAR26", "total_pain": 694933700.0}, "gex": {"gamma_flip": 66658.49, "call_gamma_wall": 75000.0, "put_gamma_wall": 70000.0, "gex_by_strike": {"20000.0": -0.21389711099004544, "30000.0": -9.208873198153864, "40000.0": -5768.60077716764, "45000.0": -7451.832711513857, "50000.0": -132443.5011652126, "51000.0": -18510.28348407249, "52000.0": -53684.554258300304, "53000.0": -17191.837239605942, "54000.0": -25129.523365828656, "55000.0": -364921.37127548596, "56000.0": -118959.39979504672, "57000.0": -204999.48712776165, "58000.0": -786031.4290445499, "59000.0": -150188.59673142634, "60000.0": -1798348.9030364691, "62000.0": -1808723.8236223897, "64000.0": -722874.8239172446, "65000.0": -3093007.102362085, "66000.0": -648150.8127015196, "67000.0": 336141.42321024113, "68000.0": -872476.0825847965, "69000.0": -1224207.5735939844, "70000.0": -5388102.759977855, "71000.0": 1949592.111598407, "72000.0": 7449060.559227491, "73000.0": 3598265.2493494796, "74000.0": 9215830.827295445, "75000.0": 30922542.301739164, "76000.0": 5728227.652716317, "77000.0": 1540811.7069659308, "78000.0": 8935233.860573774, "79000.0": 264495.645538409, "80000.0": 5186801.262486935, "82000.0": 1327699.7924999706, "84000.0": 1252366.6554048571, "85000.0": -33491.13563330821, "86000.0": 892445.4546802591, "88000.0": 26422.81835281913, "90000.0": 464619.9129123278, "92000.0": 106517.01208110104, "94000.0": 114361.3742463995, "95000.0": 304872.89961731073, "96000.0": 202518.54236258235, "98000.0": 39624.40755233506, "100000.0": 185073.0272255891, "102000.0": 35579.48133524217, "104000.0": 13673.997592596, "105000.0": 125158.98593517163, "106000.0": 74185.73433343305, "108000.0": 10652.636310676564, "110000.0": 45314.13402276335, "112000.0": 9612.103650716354, "114000.0": 5461.5371586266365, "115000.0": 14775.40428174248, "120000.0": 12683.333000308985, "125000.0": 11692.931138606102, "130000.0": 793.7141865255583, "135000.0": 562.0357582772186, "140000.0": 66.79275491018186, "145000.0": 10.10013628914061, "150000.0": 32.597608378453245, "155000.0": 11.54740369891508, "160000.0": 5.080392584226346, "170000.0": 0.7447752159251639, "180000.0": 0.5591237820777065, "190000.0": 0.14313925380216436, "200000.0": 0.035894682759863385, "210000.0": 0.003755046609621533, "220000.0": 0.0004216578908450202, "230000.0": 6.215285920960747e-05, "240000.0": 1.0336077181502928e-05, "260000.0": 5.947379922782835e-07, "280000.0": 2.1163548562056407e-08, "300000.0": 1.22209394436358e-09, "320000.0": 8.603057351408597e-11, "340000.0": 3.4917552696865336e-12}, "total_gex": 62929125.2746445}, "iv_term": {"term_structure": [{"expiry": "21MAR26", "dte": 0, "atm_iv": 41.44, "atm_strike": 72500.0}, {"expiry": "22MAR26", "dte": 1, "atm_iv": 29.75, "atm_strike": 72500.0}, {"expiry": "23MAR26", "dte": 2, "atm_iv": 34.39, "atm_strike": 72500.0}, {"expiry": "24MAR26", "dte": 3, "atm_iv": 42.92, "atm_strike": 72500.0}, {"expiry": "27MAR26", "dte": 6, "atm_iv": 49.65, "atm_strike": 73000.0}, {"expiry": "3APR26", "dte": 13, "atm_iv": 50.24, "atm_strike": 73000.0}, {"expiry": "10APR26", "dte": 20, "atm_iv": 50.28, "atm_strike": 73000.0}, {"expiry": "24APR26", "dte": 34, "atm_iv": 50.55, "atm_strike": 73000.0}, {"expiry": "29MAY26", "dte": 69, "atm_iv": 50.52, "atm_strike": 73000.0}, {"expiry": "26JUN26", "dte": 97, "atm_iv": 51.03, "atm_strike": 72000.0}, {"expiry": "25SEP26", "dte": 188, "atm_iv": 51.77, "atm_strike": 72000.0}, {"expiry": "25DEC26", "dte": 279, "atm_iv": 52.34, "atm_strike": 72000.0}], "shape": "contango (normal)"}, "risk_reversal": {"rr_25d": -5.36, "call_25d_iv": 48.85, "call_25d_strike": 76000.0, "put_25d_iv": 54.21, "put_25d_strike": 69000.0, "bias": "bearish skew (puts more expensive)"}, "pc_ratio": {"pc_ratio_oi": 0.662, "pc_ratio_volume": 1.311, "total_call_oi": 299767.8, "total_put_oi": 198423.7, "total_call_volume": 15461.9, "total_put_volume": 20265.8, "interpretation": "call-heavy \u2014 bullish leveraged positioning"}, "iv_skew": {"skew_slope": 10.55, "puts": [{"strike": 51000.0, "iv": 96.61, "moneyness": -29.7}, {"strike": 52000.0, "iv": 96.33, "moneyness": -28.3}, {"strike": 53000.0, "iv": 91.35, "moneyness": -27.0}, {"strike": 54000.0, "iv": 89.28, "moneyness": -25.6}, {"strike": 55000.0, "iv": 86.77, "moneyness": -24.2}, {"strike": 56000.0, "iv": 84.28, "moneyness": -22.8}, {"strike": 57000.0, "iv": 81.9, "moneyness": -21.4}, {"strike": 58000.0, "iv": 79.01, "moneyness": -20.1}, {"strike": 59000.0, "iv": 76.45, "moneyness": -18.7}, {"strike": 60000.0, "iv": 73.71, "moneyness": -17.3}, {"strike": 62000.0, "iv": 68.45, "moneyness": -14.6}, {"strike": 64000.0, "iv": 63.57, "moneyness": -11.8}, {"strike": 65000.0, "iv": 61.35, "moneyness": -10.4}, {"strike": 66000.0, "iv": 59.4, "moneyness": -9.0}, {"strike": 67000.0, "iv": 57.64, "moneyness": -7.7}, {"strike": 68000.0, "iv": 55.74, "moneyness": -6.3}, {"strike": 69000.0, "iv": 54.21, "moneyness": -4.9}, {"strike": 70000.0, "iv": 52.64, "moneyness": -3.5}, {"strike": 71000.0, "iv": 51.68, "moneyness": -2.1}, {"strike": 72000.0, "iv": 50.7, "moneyness": -0.8}, {"strike": 73000.0, "iv": 49.65, "moneyness": 0.6}, {"strike": 74000.0, "iv": 49.09, "moneyness": 2.0}, {"strike": 75000.0, "iv": 48.72, "moneyness": 3.4}, {"strike": 76000.0, "iv": 48.85, "moneyness": 4.7}, {"strike": 77000.0, "iv": 48.99, "moneyness": 6.1}, {"strike": 78000.0, "iv": 49.44, "moneyness": 7.5}, {"strike": 79000.0, "iv": 49.86, "moneyness": 8.9}, {"strike": 80000.0, "iv": 50.84, "moneyness": 10.3}, {"strike": 82000.0, "iv": 53.22, "moneyness": 13.0}, {"strike": 84000.0, "iv": 56.26, "moneyness": 15.8}, {"strike": 85000.0, "iv": 56.26, "moneyness": 17.1}, {"strike": 86000.0, "iv": 57.89, "moneyness": 18.5}, {"strike": 88000.0, "iv": 63.84, "moneyness": 21.3}, {"strike": 90000.0, "iv": 67.32, "moneyness": 24.0}, {"strike": 92000.0, "iv": 72.5, "moneyness": 26.8}, {"strike": 94000.0, "iv": 75.79, "moneyness": 29.5}], "calls": [{"strike": 51000.0, "iv": 96.61, "moneyness": -29.7}, {"strike": 52000.0, "iv": 96.33, "moneyness": -28.3}, {"strike": 53000.0, "iv": 91.35, "moneyness": -27.0}, {"strike": 54000.0, "iv": 89.28, "moneyness": -25.6}, {"strike": 55000.0, "iv": 86.77, "moneyness": -24.2}, {"strike": 56000.0, "iv": 84.28, "moneyness": -22.8}, {"strike": 57000.0, "iv": 81.9, "moneyness": -21.4}, {"strike": 58000.0, "iv": 79.01, "moneyness": -20.1}, {"strike": 59000.0, "iv": 76.45, "moneyness": -18.7}, {"strike": 60000.0, "iv": 73.71, "moneyness": -17.3}, {"strike": 62000.0, "iv": 68.45, "moneyness": -14.6}, {"strike": 64000.0, "iv": 63.57, "moneyness": -11.8}, {"strike": 65000.0, "iv": 61.35, "moneyness": -10.4}, {"strike": 66000.0, "iv": 59.4, "moneyness": -9.0}, {"strike": 67000.0, "iv": 57.64, "moneyness": -7.7}, {"strike": 68000.0, "iv": 55.74, "moneyness": -6.3}, {"strike": 69000.0, "iv": 54.21, "moneyness": -4.9}, {"strike": 70000.0, "iv": 52.64, "moneyness": -3.5}, {"strike": 71000.0, "iv": 51.68, "moneyness": -2.1}, {"strike": 72000.0, "iv": 50.7, "moneyness": -0.8}, {"strike": 73000.0, "iv": 49.65, "moneyness": 0.6}, {"strike": 74000.0, "iv": 49.09, "moneyness": 2.0}, {"strike": 75000.0, "iv": 48.72, "moneyness": 3.4}, {"strike": 76000.0, "iv": 48.85, "moneyness": 4.7}, {"strike": 77000.0, "iv": 48.99, "moneyness": 6.1}, {"strike": 78000.0, "iv": 49.44, "moneyness": 7.5}, {"strike": 79000.0, "iv": 49.86, "moneyness": 8.9}, {"strike": 80000.0, "iv": 50.84, "moneyness": 10.3}, {"strike": 82000.0, "iv": 53.22, "moneyness": 13.0}, {"strike": 84000.0, "iv": 56.26, "moneyness": 15.8}, {"strike": 85000.0, "iv": 56.26, "moneyness": 17.1}, {"strike": 86000.0, "iv": 57.89, "moneyness": 18.5}, {"strike": 88000.0, "iv": 63.84, "moneyness": 21.3}, {"strike": 90000.0, "iv": 67.32, "moneyness": 24.0}, {"strike": 92000.0, "iv": 72.5, "moneyness": 26.8}, {"strike": 94000.0, "iv": 75.79, "moneyness": 29.5}], "interpretation": "steep put skew \u2014 downside fear premium"}, "delta_exposure": {"net_delta_usd": -676411333.0, "total_call_delta_usd": 1230433946.0, "total_put_delta_usd": -1906845279.0, "delta_by_strike": {"20000.0": 11595013.692926884, "30000.0": 6864096.319515766, "40000.0": 3410203.432094981, "45000.0": 425129.9810722481, "50000.0": 2583058.259609238, "51000.0": 72400.23661430686, "52000.0": 250719.5596858053, "53000.0": -66610.28284934159, "54000.0": -69417.14862913333, "55000.0": 19588743.249033693, "56000.0": 335148.3707883644, "57000.0": -421884.98748203064, "58000.0": -1460098.0988615307, "59000.0": 837647.1918492292, "60000.0": 14729822.417652726, "62000.0": -2626011.878252398, "64000.0": 20095849.129467808, "65000.0": 68485801.04326385, "66000.0": 60680491.04266724, "67000.0": 60529361.89829578, "68000.0": 85373010.51427475, "69000.0": 5453811.983216731, "70000.0": 47243392.80586834, "71000.0": 36861816.58394398, "72000.0": 75194077.10773681, "73000.0": 25252037.992813118, "74000.0": 48735601.90272644, "75000.0": 104432769.3757381, "76000.0": 23874908.74280321, "77000.0": 5237452.075009614, "78000.0": 18896281.980963267, "79000.0": 944182.4418898781, "80000.0": -118183483.25597373, "82000.0": -33337028.736701835, "84000.0": -34328484.34392102, "85000.0": -291859048.0349622, "86000.0": -60195519.67655962, "88000.0": -57341068.18476235, "90000.0": -219433847.020818, "92000.0": -54225294.484977975, "94000.0": -19410333.612086665, "95000.0": -104518492.58741005, "96000.0": -12633249.174727954, "98000.0": -30693262.906627696, "100000.0": -102462737.78059956, "102000.0": -1295303.1638773798, "104000.0": -509732.10469129717, "105000.0": -32512002.400284007, "106000.0": -60917.256299812056, "108000.0": -1614304.0886163583, "110000.0": -67779121.07104416, "112000.0": -2140459.431500977, "114000.0": -21963.9962081735, "115000.0": -35235720.99185305, "120000.0": -13576827.212402364, "125000.0": -5975529.4625477055, "130000.0": -37277192.19996147, "135000.0": -3118201.3706257883, "140000.0": -384360.6957414176, "145000.0": -58018.36150767859, "150000.0": -1777609.539569279, "155000.0": -348250.79230177705, "160000.0": -4476907.400675075, "170000.0": -4005284.152092129, "180000.0": -36278.23066322486, "190000.0": -7255.547955868514, "200000.0": -536940.493670047, "210000.0": 0.010177956864939604, "220000.0": 0.0010964793968998902, "230000.0": 0.0001555753227948529, "240000.0": -7255.953974991763, "260000.0": -7255.953998650599, "280000.0": -21767.861999954453, "300000.0": -18190676.677999992, "320000.0": -24989505.575999998, "340000.0": -25163648.472}, "bias": "net short (bearish directional risk)"}, "walls": {"call_walls": [{"strike": 75000.0, "oi": 9962.7, "pct_from_spot": 3.4}, {"strike": 80000.0, "oi": 5591.1, "pct_from_spot": 10.3}, {"strike": 90000.0, "oi": 5838.5, "pct_from_spot": 24.0}, {"strike": 95000.0, "oi": 4837.8, "pct_from_spot": 30.9}, {"strike": 100000.0, "oi": 4633.6, "pct_from_spot": 37.8}], "put_walls": [{"strike": 50000.0, "oi": 4430.7, "pct_from_spot": -31.1}, {"strike": 55000.0, "oi": 3811.2, "pct_from_spot": -24.2}, {"strike": 60000.0, "oi": 5142.2, "pct_from_spot": -17.3}, {"strike": 65000.0, "oi": 3679.0, "pct_from_spot": -10.4}, {"strike": 70000.0, "oi": 3993.1, "pct_from_spot": -3.5}]}, "block_trades": {"blocks": [{"instrument": "BTC-22MAR26-72000-C", "direction": "buy", "amount": 15.3, "price": 0.0014, "underlying_notional_usd": 1110161.0, "premium_usd": 1554.0, "iv": 28.83, "time": "22:44 UTC", "strike": 72000.0, "type": "C"}, {"instrument": "BTC-21MAR26-68000-P", "direction": "sell", "amount": 4.9, "price": 0.0002, "underlying_notional_usd": 355542.0, "premium_usd": 71.0, "iv": 61.32, "time": "22:39 UTC", "strike": 68000.0, "type": "P"}, {"instrument": "BTC-22MAR26-72000-C", "direction": "buy", "amount": 2.4, "price": 0.0013, "underlying_notional_usd": 174143.0, "premium_usd": 226.0, "iv": 28.16, "time": "22:44 UTC", "strike": 72000.0, "type": "C"}, {"instrument": "BTC-22MAR26-72000-C", "direction": "buy", "amount": 2.3, "price": 0.0014, "underlying_notional_usd": 166887.0, "premium_usd": 234.0, "iv": 28.83, "time": "22:44 UTC", "strike": 72000.0, "type": "C"}, {"instrument": "BTC-26JUN26-68000-P", "direction": "buy", "amount": 2.3, "price": 0.084, "underlying_notional_usd": 166887.0, "premium_usd": 14019.0, "iv": 52.3, "time": "22:42 UTC", "strike": 68000.0, "type": "P"}, {"instrument": "BTC-10APR26-69000-P", "direction": "buy", "amount": 2.2, "price": 0.0375, "underlying_notional_usd": 159631.0, "premium_usd": 5986.0, "iv": 52.94, "time": "22:42 UTC", "strike": 69000.0, "type": "P"}, {"instrument": "BTC-10APR26-69000-P", "direction": "buy", "amount": 2.0, "price": 0.0375, "underlying_notional_usd": 145119.0, "premium_usd": 5442.0, "iv": 52.8, "time": "22:43 UTC", "strike": 69000.0, "type": "P"}, {"instrument": "BTC-10APR26-69000-P", "direction": "buy", "amount": 2.0, "price": 0.0375, "underlying_notional_usd": 145119.0, "premium_usd": 5442.0, "iv": 52.94, "time": "22:42 UTC", "strike": 69000.0, "type": "P"}, {"instrument": "BTC-27MAR26-70000-P", "direction": "sell", "amount": 1.9, "price": 0.0225, "underlying_notional_usd": 137863.0, "premium_usd": 3102.0, "iv": 52.6, "time": "22:40 UTC", "strike": 70000.0, "type": "P"}, {"instrument": "BTC-22MAR26-70500-C", "direction": "buy", "amount": 1.8, "price": 0.008, "underlying_notional_usd": 130607.0, "premium_usd": 1045.0, "iv": 25.4, "time": "22:49 UTC", "strike": 70500.0, "type": "C"}], "total_block_count": 12, "net_call_buys": 23.3, "net_put_buys": 10.0, "smart_money_bias": "bullish (buying calls)"}, "event_study": {"events": [{"date": "2025-05-07", "price_t7": 95060.5, "price_t0": 99298.5, "price_t7_post": 101823.0, "return_pre_pct": 4.46, "return_post_pct": 2.54, "return_total_pct": 7.11}, {"date": "2025-06-18", "price_t7": 107651.5, "price_t0": 104646.5, "price_t7_post": 107915.0, "return_pre_pct": -2.79, "return_post_pct": 3.12, "return_total_pct": 0.24}, {"date": "2025-07-30", "price_t7": 118511.5, "price_t0": 118709.5, "price_t7_post": 114851.5, "return_pre_pct": 0.17, "return_post_pct": -3.25, "return_total_pct": -3.09}, {"date": "2025-09-17", "price_t7": 114150.0, "price_t0": 117140.5, "price_t7_post": 111825.5, "return_pre_pct": 2.62, "return_post_pct": -4.54, "return_total_pct": -2.04}, {"date": "2025-11-05", "price_t7": 111420.0, "price_t0": 103200.0, "price_t7_post": 103430.0, "return_pre_pct": -7.38, "return_post_pct": 0.22, "return_total_pct": -7.17}, {"date": "2025-12-17", "price_t7": 90290.0, "price_t0": 86821.0, "price_t7_post": 87822.0, "return_pre_pct": -3.84, "return_post_pct": 1.15, "return_total_pct": -2.73}, {"date": "2026-01-28", "price_t7": 89748.0, "price_t0": 88244.5, "price_t7_post": 70573.5, "return_pre_pct": -1.68, "return_post_pct": -20.03, "return_total_pct": -21.36}], "avg_return_total_pct": -4.15, "avg_return_pre_pct": -1.21, "avg_return_post_pct": -2.97, "sample_size": 7}};</script>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">opts</div>
+    <div class="currency-tabs" id="currencyTabs">
+      <button class="currency-tab active" data-c="BTC">BTC</button>
+      <button class="currency-tab" data-c="ETH">ETH</button>
+      <button class="currency-tab" data-c="SOL">SOL</button>
+      <button class="currency-tab" data-c="XRP">XRP</button>
+      <button class="currency-tab" data-c="TRX">TRX</button>
+      <button class="currency-tab" data-c="AVAX">AVAX</button>
+    </div>
+    <div class="header-right">
+      <span class="ts" id="timestamp"></span>
+      <button class="btn-export" id="btnSnapshot">EXPORT</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="snap-bar" id="snapshotBanner">SNAPSHOT — data frozen at generation time</div>
+  <div id="content">
+    <div class="loading"><div class="spinner"></div><div class="loading-text">loading...</div></div>
+  </div>
+</div>
+
+<script>
+let currentCurrency = 'BTC';
+let reportData = null;
+const charts = {};
+const isSnapshot = !!window.__SNAPSHOT__;
+
+function fp(v) {
+  if (v == null || isNaN(v)) return '—';
+  const a = Math.abs(v), s = v < 0 ? '-' : '';
+  if (a >= 10000) return s + '$' + a.toLocaleString('en-US', {maximumFractionDigits: 0});
+  if (a >= 10) return s + '$' + a.toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+  if (a >= 1) return s + '$' + a.toFixed(2);
+  if (a >= 0.01) return s + '$' + a.toFixed(4);
+  return s + '$' + a.toFixed(6);
+}
+function pct(v, s) { const p = (v / s - 1) * 100; return (p >= 0 ? '+' : '') + p.toFixed(1) + '%'; }
+function fn(v, d=0) { return v == null || isNaN(v) ? '—' : v.toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d}); }
+function fd(v) {
+  const a = Math.abs(v);
+  if (a >= 1e9) return (v/1e9).toFixed(1)+'B';
+  if (a >= 1e6) return (v/1e6).toFixed(1)+'M';
+  if (a >= 1e3) return (v/1e3).toFixed(0)+'K';
+  return v.toFixed(0);
+}
+
+// Extract entries from dicts with float-string keys (e.g. "58000.0")
+function dictEntries(obj, spot, range=0.2) {
+  return Object.entries(obj || {})
+    .map(([k, v]) => [Number(k), v])
+    .filter(([s]) => s >= spot * (1-range) && s <= spot * (1+range))
+    .sort((a, b) => a[0] - b[0]);
+}
+
+Chart.defaults.color = '#44444c';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 9;
+
+function render(d) {
+  reportData = d;
+  if (d.error) { document.getElementById('content').innerHTML = `<div class="error-box">${d.error}</div>`; return; }
+
+  const spot = d.spot;
+  const sum = d.summary || {};
+  const kl = sum.key_levels || {};
+  document.getElementById('timestamp').textContent = d.generated_at || '';
+  if (isSnapshot) document.getElementById('snapshotBanner').classList.add('on');
+
+  let h = '';
+
+  // Hero
+  const sentCls = sum.sentiment === 'bullish' ? 'bull' : sum.sentiment === 'bearish' ? 'bear' : 'neut';
+  const sentTag = sentCls === 'bull' ? 'tag-bull' : sentCls === 'bear' ? 'tag-bear' : 'tag-neut';
+  h += `<div class="hero">
+    <div class="spot-price"><span class="spot-currency">${d.currency}</span>${fp(spot)}</div>
+    <div class="hero-tags">
+      <span class="tag ${sentTag}">${(sum.sentiment||'neutral').toUpperCase()}</span>
+      <span class="tag tag-info">IV ${d.atm_iv}%</span>
+      <span class="tag tag-info">${sum.regime === 'positive_gamma' ? '+γ' : '-γ'}</span>
+      <span class="tag tag-info">${d.total_contracts} contracts</span>
+    </div>
+  </div>`;
+
+  // Signals
+  const sigs = sum.signals || [];
+  if (sigs.length) {
+    h += '<div class="signals">';
+    sigs.forEach(s => { h += `<span class="sig ${s.direction === 'bullish' ? 'bull' : s.direction === 'bearish' ? 'bear' : 'neut'}">${s.label}</span>`; });
+    h += '</div>';
+  }
+
+  // Metrics strip
+  const mp = d.max_pain || {}, gex = d.gex || {}, pc = d.pc_ratio || {}, rr = d.risk_reversal || {}, de = d.delta_exposure || {}, sk = d.iv_skew || {};
+  h += '<div class="metrics">';
+  h += `<div class="m-cell"><div class="m-label">Max Pain</div><div class="m-val">${fp(mp.max_pain)}</div><div class="m-sub ${mp.max_pain > spot ? 'up' : 'down'}">${pct(mp.max_pain, spot)} · ${mp.expiry||''}</div></div>`;
+  h += `<div class="m-cell"><div class="m-label">γ Flip</div><div class="m-val">${fp(gex.gamma_flip)}</div><div class="m-sub ${spot > gex.gamma_flip ? 'up' : 'down'}">${pct(gex.gamma_flip, spot)} · ${spot > gex.gamma_flip ? 'above' : 'below'}</div></div>`;
+  h += `<div class="m-cell"><div class="m-label">P/C Ratio</div><div class="m-val">${(pc.pc_ratio_oi||0).toFixed(3)}</div><div class="m-sub">${fn(pc.total_put_oi)}P / ${fn(pc.total_call_oi)}C</div></div>`;
+  h += `<div class="m-cell"><div class="m-label">RR 25Δ</div><div class="m-val ${rr.rr_25d > 2 ? 'up' : rr.rr_25d < -2 ? 'dn' : ''}">${(rr.rr_25d||0) >= 0 ? '+' : ''}${(rr.rr_25d||0).toFixed(2)}%</div><div class="m-sub">${rr.bias||''}</div></div>`;
+  h += `<div class="m-cell"><div class="m-label">Net Delta</div><div class="m-val ${de.net_delta_usd > 0 ? 'up' : 'dn'}">${de.net_delta_usd >= 0 ? '+' : ''}$${fd(de.net_delta_usd||0)}</div><div class="m-sub">${de.bias||''}</div></div>`;
+  h += `<div class="m-cell"><div class="m-label">IV Skew</div><div class="m-val ${sk.skew_slope > 5 ? 'dn' : sk.skew_slope < -5 ? 'up' : ''}">${(sk.skew_slope||0) >= 0 ? '+' : ''}${(sk.skew_slope||0).toFixed(2)}%</div><div class="m-sub">${sk.interpretation||''}</div></div>`;
+  h += '</div>';
+
+  // Key Levels — staggered above/below a horizontal line
+  const lvls = [
+    kl.put_gamma_wall && { v: kl.put_gamma_wall, name: 'Put γ Wall', color: 'var(--red)' },
+    kl.nearest_put_wall && { v: kl.nearest_put_wall, name: 'Put Wall', color: 'var(--red)' },
+    kl.gex_flip && { v: kl.gex_flip, name: 'γ Flip', color: 'var(--accent)' },
+    { v: spot, name: 'Spot', color: 'var(--text)' },
+    kl.max_pain && { v: kl.max_pain, name: 'Max Pain', color: 'var(--yellow)' },
+    kl.nearest_call_wall && { v: kl.nearest_call_wall, name: 'Call Wall', color: 'var(--green)' },
+    kl.call_gamma_wall && { v: kl.call_gamma_wall, name: 'Call γ Wall', color: 'var(--green)' },
+  ].filter(Boolean).sort((a, b) => a.v - b.v);
+
+  if (lvls.length > 1) {
+    const lo = Math.min(...lvls.map(l=>l.v)) * 0.998;
+    const hi = Math.max(...lvls.map(l=>l.v)) * 1.002;
+    const rng = hi - lo;
+    h += `<div class="levels-section"><div class="levels-title">Key Levels</div><div class="levels-track"><div class="levels-line"></div>`;
+    lvls.forEach((l, i) => {
+      const left = ((l.v - lo) / rng * 100).toFixed(1);
+      const pos = i % 2 === 0 ? 'above' : 'below';
+      h += `<div class="lm ${pos}" style="left:${left}%">
+        <div class="lm-price" style="color:${l.color}">${fp(l.v)}</div>
+        <div class="lm-name" style="color:${l.color}">${l.name}</div>
+        <div class="lm-tick" style="background:${l.color}"></div>
+      </div>`;
+    });
+    h += '</div></div>';
+  }
+
+  // Grid
+  h += '<div class="grid">';
+
+  // GEX
+  h += `<div class="panel"><div class="p-head"><span class="p-title">GEX by Strike</span><span class="p-tag" style="color:${gex.total_gex > 0 ? 'var(--green)' : 'var(--red)'}">${gex.total_gex > 0 ? 'NET +' : 'NET −'}</span></div>
+    <div class="chart-box"><canvas id="chartGex"></canvas></div>
+    <div class="p-note"><b>Flip:</b> ${fp(gex.gamma_flip)} · <b>Call γ wall:</b> ${fp(gex.call_gamma_wall)} · <b>Put γ wall:</b> ${fp(gex.put_gamma_wall)} · <b>Total GEX:</b> ${fd(gex.total_gex||0)}</div>
+    <div class="p-explain"><b>What:</b> Map of dealer hedging pressure at each strike. When MMs sell options, they delta-hedge — gamma determines whether hedging stabilizes or destabilizes price.<br><b>Why it matters:</b> Above the γ flip = positive gamma = moves dampened, range-bound. Below = negative gamma = moves amplified, trending. The flip level is the single most actionable line — it's where market regime changes.<br><span class="p-formula">GEX(K) = Gamma(K) × OI(K) × Spot² / 100 · calls +, puts −</span><br><span class="p-src">Source: Deribit public API, Black-Scholes computed locally</span></div></div>`;
+
+  // IV Term Structure
+  const ivt = d.iv_term || {};
+  const ts = ivt.term_structure || [];
+  h += `<div class="panel"><div class="p-head"><span class="p-title">IV Term Structure</span><span class="p-tag" style="color:${ivt.shape?.includes('backwardation') ? 'var(--red)' : 'var(--text-sec)'}">${ivt.shape || 'flat'}</span></div>`;
+  if (ts.length) {
+    const maxIV = Math.max(...ts.map(t => t.atm_iv));
+    ts.forEach(t => {
+      const w = Math.max(4, t.atm_iv / maxIV * 100);
+      const c = t.atm_iv > maxIV * 0.85 ? 'var(--accent)' : 'var(--blue)';
+      h += `<div class="ivt-r"><span class="ivt-exp">${t.expiry}</span><span class="ivt-d">${t.dte}d</span><div class="ivt-bw"><div class="ivt-b" style="width:${w}%;background:${c}"></div></div><span class="ivt-v">${t.atm_iv.toFixed(1)}%</span></div>`;
+    });
+  }
+  h += `<div class="p-note">${ivt.shape?.includes('backwardation') ? 'Near-term IV elevated — short-term fear or event risk' : 'Normal contango — longer-dated options priced higher'}</div>
+    <div class="p-explain"><b>What:</b> ATM implied volatility across expiration dates.<br><b>Contango</b> (upward) = calm now, uncertainty later. Normal. <b>Backwardation</b> (inverted) = fear NOW — short-dated IV spikes above long-dated. Happens before FOMC, CPI, protocol upgrades, or during sell-offs.<br><b>Why it matters:</b> Sudden steepening = market pricing near-term catalyst. Calendar spread opps when shape is extreme. Shape changes signal regime transitions.<br><span class="p-src">Source: Deribit mark_iv per contract, ATM = nearest-to-spot strike</span></div></div>`;
+
+  // IV Skew
+  h += `<div class="panel"><div class="p-head"><span class="p-title">IV Skew</span><span class="p-tag" style="color:${sk.skew_slope > 5 ? 'var(--red)' : sk.skew_slope < -5 ? 'var(--green)' : 'var(--text-sec)'}">${sk.skew_slope > 0 ? '+' : ''}${(sk.skew_slope||0).toFixed(1)}%</span></div>
+    <div class="chart-box short"><canvas id="chartSkew"></canvas></div>
+    <div class="p-note">${sk.skew_slope > 5 ? 'OTM puts at IV premium — downside hedging demand' : sk.skew_slope < -5 ? 'OTM calls at premium — upside speculation' : 'Balanced risk pricing'}</div>
+    <div class="p-explain"><b>What:</b> IV plotted against strike price for the nearest expiry. The "smile" or "smirk" shape reveals where option demand concentrates.<br><b>Smirk</b> (puts expensive) = demand for downside protection. <b>Smile</b> (both tails high) = uncertainty in both directions, common before binary events. <b>Flat</b> = complacency, no one paying for protection.<br><b>Why it matters:</b> Slope magnitude shows conviction level. >5% put skew = significant hedging demand. The specific strikes where IV peaks show exactly which prices traders fear.<br><span class="p-formula">Skew = avg(OTM put IV at -10%) − avg(OTM call IV at +10%)</span><br><span class="p-src">Source: Deribit mark_iv, filtered to ±30% of spot</span></div></div>`;
+
+  // Call/Put Walls
+  const walls = d.walls || {};
+  const cw = walls.call_walls || [], pw = walls.put_walls || [];
+  const moi = Math.max(...[...cw,...pw].map(w => w.oi||0), 1);
+  h += `<div class="panel"><div class="p-head"><span class="p-title">Call / Put Walls</span></div>`;
+  h += '<div class="w-sec" style="color:var(--green)">Call — Resistance</div>';
+  cw.forEach(w => {
+    h += `<div class="w-r"><span class="w-s">${fp(w.strike)}</span><div class="w-bw"><div class="w-b c" style="width:${Math.max(3,w.oi/moi*100)}%"></div></div><span class="w-o">${fn(w.oi)}</span><span class="w-pct up">${w.pct_from_spot>=0?'+':''}${w.pct_from_spot}%</span></div>`;
+  });
+  h += '<div class="w-sec" style="color:var(--red)">Put — Support</div>';
+  pw.forEach(w => {
+    h += `<div class="w-r"><span class="w-s">${fp(w.strike)}</span><div class="w-bw"><div class="w-b p" style="width:${Math.max(3,w.oi/moi*100)}%"></div></div><span class="w-o">${fn(w.oi)}</span><span class="w-pct dn">${w.pct_from_spot>=0?'+':''}${w.pct_from_spot}%</span></div>`;
+  });
+  h += `<div class="p-explain"><b>What:</b> Top 5 call/put OI concentrations by strike (3% minimum spacing to avoid clustering).<br><b>Call walls</b> (above spot) = resistance — dealers who sold calls buy the underlying as price rises, creating selling pressure at the wall. <b>Put walls</b> (below spot) = support — dealers who sold puts sell the underlying as price falls, creating buying pressure.<br><b>Why it matters:</b> These are the most stable metric — they represent weeks of accumulated positioning. Combined with max pain, they define the options-driven "range" for the expiry cycle.<br><span class="p-src">Source: Deribit OI per strike, top expiry by total OI</span></div></div>`;
+
+  // Delta Exposure
+  h += `<div class="panel"><div class="p-head"><span class="p-title">Delta Exposure</span><span class="p-tag ${de.net_delta_usd > 0 ? 'up' : 'dn'}">${de.bias||''}</span></div>
+    <div class="chart-box"><canvas id="chartDelta"></canvas></div>
+    <div class="p-note"><b>Net:</b> $${fd(de.net_delta_usd||0)} · <b>Call Δ:</b> $${fd(de.total_call_delta_usd||0)} · <b>Put Δ:</b> $${fd(de.total_put_delta_usd||0)}</div>
+    <div class="p-explain"><b>What:</b> Dollar-weighted directional exposure across all strikes. Each option's delta × OI × spot = its notional directional exposure.<br><b>Why it matters:</b> Net long delta = market has bullish directional risk. Net short = bearish. The distribution by strike shows where the directional bets concentrate. Large clusters = magnetic levels where dealer hedging creates flow.<br><span class="p-formula">Delta_exposure(K) = BS_delta(K) × OI(K) × Spot</span><br><span class="p-src">Source: Deribit OI + Black-Scholes delta computed locally</span></div></div>`;
+
+  // Risk Reversal
+  h += `<div class="panel"><div class="p-head"><span class="p-title">25Δ Risk Reversal</span><span class="p-tag ${rr.rr_25d > 2 ? 'up' : rr.rr_25d < -2 ? 'dn' : ''}">${rr.bias||''}</span></div>
+    <div class="stat-grid">
+      <div class="stat-cell"><div class="stat-label">25Δ Call</div><div class="stat-val up">${fp(rr.call_25d_strike||0)}</div><div class="stat-sub">IV ${(rr.call_25d_iv||0).toFixed(1)}%</div></div>
+      <div class="stat-cell"><div class="stat-label">25Δ Put</div><div class="stat-val dn">${fp(rr.put_25d_strike||0)}</div><div class="stat-sub">IV ${(rr.put_25d_iv||0).toFixed(1)}%</div></div>
+      <div class="stat-cell stat-wide"><div class="stat-label">Spread</div><div class="stat-val ${rr.rr_25d > 2 ? 'up' : rr.rr_25d < -2 ? 'dn' : ''}">${(rr.rr_25d||0)>=0?'+':''}${(rr.rr_25d||0).toFixed(2)}%</div></div>
+    </div>
+    <div class="p-explain"><b>What:</b> Difference in IV between 25-delta OTM call and 25-delta OTM put. Measures directional conviction in the options market.<br><span class="p-formula">RR25 = IV(25Δ call) − IV(25Δ put)</span><br><b>Positive</b> = calls more expensive = bullish sentiment — traders paying up for upside. <b>Negative</b> = puts more expensive = hedging demand — traders buying protection.<br><b>Why it matters:</b> In crypto, RR is typically positive (long-biased speculators buy calls). A flip to negative is rare and meaningful — it signals institutional fear. Magnitude >3% is noteworthy. One of the most interesting metrics because it captures directional conviction better than P/C ratio alone.<br><span class="p-src">Source: Deribit mark_iv + Black-Scholes delta matching</span></div></div>`;
+
+  // P/C Ratio
+  h += `<div class="panel"><div class="p-head"><span class="p-title">Put/Call Ratio</span><span class="p-tag">${pc.interpretation||''}</span></div>
+    <div class="stat-grid">
+      <div class="stat-cell"><div class="stat-label">By OI</div><div class="stat-val">${(pc.pc_ratio_oi||0).toFixed(3)}</div><div class="stat-sub"><span class="dn">${fn(pc.total_put_oi)}P</span> / <span class="up">${fn(pc.total_call_oi)}C</span></div></div>
+      <div class="stat-cell"><div class="stat-label">By Volume</div><div class="stat-val">${(pc.pc_ratio_volume||0).toFixed(3)}</div><div class="stat-sub"><span class="dn">${fn(pc.total_put_volume)}P</span> / <span class="up">${fn(pc.total_call_volume)}C</span></div></div>
+    </div>
+    <div class="p-explain"><b>What:</b> Ratio of put OI (or volume) to call OI. Simple measure of market positioning.<br><span class="p-formula">PCR = Put_OI / Call_OI</span><br><b>For crypto:</b> <b>&lt;0.7</b> = call-dominated (normal — crypto has natural long bias). <b>~0.7</b> = neutral baseline. <b>&gt;1.0</b> = unusual, signals heavy hedging or fear — often marks bottoms (contrarian indicator).<br><b>Why it matters:</b> Extreme readings are contrarian — too many puts = everyone already hedged = potential bottom. Volume P/C diverging from OI P/C signals a short-term positioning shift. Track changes over time, not just absolute levels.<br><span class="p-src">Source: Deribit OI and volume per contract, all expiries</span></div></div>`;
+
+  // Block Trades
+  const bt = d.block_trades || {};
+  const blocks = bt.blocks || [];
+  h += `<div class="panel full"><div class="p-head"><span class="p-title">Block Trades &gt;$100K</span><span class="p-tag" style="color:${bt.smart_money_bias?.includes('bullish') ? 'var(--green)' : bt.smart_money_bias?.includes('bearish') ? 'var(--red)' : 'var(--text-sec)'}">${bt.smart_money_bias||'mixed'}</span></div>`;
+  if (blocks.length) {
+    h += `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Side</th><th>Instrument</th><th class="r">Notional</th><th class="r">Premium</th><th class="r">IV</th><th class="r">Strike</th><th>Type</th></tr></thead><tbody>`;
+    blocks.forEach(b => {
+      h += `<tr><td>${b.time}</td><td class="${b.direction==='buy'?'up':'dn'}" style="font-weight:600">${(b.direction||'').toUpperCase()}</td><td style="color:var(--text)">${b.instrument}</td><td class="r">${fp(b.underlying_notional_usd)}</td><td class="r">${fp(b.premium_usd)}</td><td class="r">${(b.iv||0).toFixed(1)}%</td><td class="r">${fp(b.strike)}</td><td class="${b.type==='C'?'up':'dn'}">${b.type==='C'?'CALL':'PUT'}</td></tr>`;
+    });
+    h += '</tbody></table></div>';
+  } else { h += '<div style="padding:16px;color:var(--text-dim);font-family:var(--mono);font-size:11px;text-align:center">No blocks in recent 100 trades</div>'; }
+  h += `<div class="p-note"><b>Blocks:</b> ${bt.total_block_count||0} · <b>Net call buys:</b> ${fn(bt.net_call_buys||0,2)} · <b>Net put buys:</b> ${fn(bt.net_put_buys||0,2)}</div>
+    <div class="p-explain"><b>What:</b> Trades with >$100K underlying notional. These represent institutional-size positioning — negotiated OTC via RFQ platforms (Paradigm, Greeks.live) then cleared on Deribit.<br><b>Why it matters:</b> Block put buying = institutional fear or hedging a large long. Block call buying = positioning for upside. The specific strike and expiry reveal WHERE and WHEN smart money expects the move. A big block on a new strike creates a new "level" on the chart. Notional shown is underlying exposure (amount × spot), not premium paid.<br><span class="p-formula">Underlying notional = contracts × spot_price · Threshold: $100K</span><br><span class="p-src">Source: Deribit last 100 trades, filtered by notional</span></div></div>`;
+
+  // FOMC
+  const es = d.event_study || {};
+  const evts = es.events || [];
+  h += `<div class="panel full"><div class="p-head"><span class="p-title">FOMC Event Study</span><span class="p-tag">${es.sample_size||0} meetings</span></div>`;
+  if (evts.length) {
+    h += `<div style="display:flex;gap:1px;background:var(--divider);margin-bottom:12px">
+      <div class="stat-cell" style="flex:1"><div class="stat-label">Avg T-7→T+7</div><div class="stat-val ${(es.avg_return_total_pct||0)>=0?'up':'dn'}" style="font-size:18px">${(es.avg_return_total_pct||0)>=0?'+':''}${(es.avg_return_total_pct||0).toFixed(2)}%</div></div>
+      <div class="stat-cell" style="flex:1"><div class="stat-label">Pre-FOMC</div><div class="stat-val ${(es.avg_return_pre_pct||0)>=0?'up':'dn'}" style="font-size:18px">${(es.avg_return_pre_pct||0)>=0?'+':''}${(es.avg_return_pre_pct||0).toFixed(2)}%</div></div>
+      <div class="stat-cell" style="flex:1"><div class="stat-label">Post-FOMC</div><div class="stat-val ${(es.avg_return_post_pct||0)>=0?'up':'dn'}" style="font-size:18px">${(es.avg_return_post_pct||0)>=0?'+':''}${(es.avg_return_post_pct||0).toFixed(2)}%</div></div>
+    </div>`;
+    h += `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th class="r">Pre</th><th class="r">Post</th><th class="r">Total</th><th class="r">Price</th></tr></thead><tbody>`;
+    evts.forEach(e => {
+      h += `<tr><td style="color:var(--text)">${e.date}</td><td class="r ${e.return_pre_pct>=0?'up':'dn'}">${e.return_pre_pct>=0?'+':''}${e.return_pre_pct.toFixed(2)}%</td><td class="r ${e.return_post_pct>=0?'up':'dn'}">${e.return_post_pct>=0?'+':''}${e.return_post_pct.toFixed(2)}%</td><td class="r ${e.return_total_pct>=0?'up':'dn'}">${e.return_total_pct>=0?'+':''}${e.return_total_pct.toFixed(2)}%</td><td class="r">${fp(e.price_t0)}</td></tr>`;
+    });
+    h += '</tbody></table></div>';
+  } else { h += `<div style="padding:16px;color:var(--text-dim);font-family:var(--mono);font-size:11px;text-align:center">${es.note||'No data'}</div>`; }
+  h += `<div class="p-explain"><b>What:</b> ${d.currency} price behavior in the ±7 day window around each FOMC rate decision over the past year. Pre-FOMC = T-7 to T (positioning week). Post-FOMC = T to T+7 (reaction week).<br><b>Why it matters:</b> FOMC dates create predictable volatility cycles. Pre-meeting: ~1.8 vol point uptick in ATM IV during the 2-week window. Traders can position for the volatility expansion (buy straddles) or the contraction after (sell vol). Historical pattern shows whether the asset trends before/after meetings or mean-reverts. Calendar spread opportunities around these dates.<br><span class="p-src">Source: Deribit perpetual daily candles, 365-day history. FOMC dates: 2025-2026 schedule.</span></div></div>`;
+
+  h += '</div>'; // grid
+  document.getElementById('content').innerHTML = h;
+  setTimeout(() => renderCharts(d), 30);
+}
+
+function renderCharts(d) {
+  const spot = d.spot;
+  Object.values(charts).forEach(c => c.destroy());
+
+  const ttOpts = { backgroundColor: '#161618', titleColor: '#dcdcde', bodyColor: '#7a7a82', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, padding: 8 };
+
+  // GEX
+  const gexEntries = dictEntries(d.gex?.gex_by_strike, spot);
+  const gexEl = document.getElementById('chartGex');
+  if (gexEl && gexEntries.length) {
+    charts.gex = new Chart(gexEl, {
+      type: 'bar',
+      data: {
+        labels: gexEntries.map(([s]) => fp(s)),
+        datasets: [{ data: gexEntries.map(([,v]) => v), backgroundColor: gexEntries.map(([,v]) => v >= 0 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)'), borderWidth: 0, borderRadius: 1, barPercentage: 0.85 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { ...ttOpts, callbacks: { label: c => 'GEX ' + fd(c.raw) } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 50, font: { size: 8 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => fd(v) } }
+        }
+      }
+    });
+  }
+
+  // Skew
+  const skPuts = (d.iv_skew?.puts || []).sort((a,b) => a.strike - b.strike);
+  const skCalls = (d.iv_skew?.calls || []).sort((a,b) => a.strike - b.strike);
+  const allM = [...new Set([...skPuts.map(p=>p.moneyness),...skCalls.map(c=>c.moneyness)])].sort((a,b)=>a-b);
+  const skewEl = document.getElementById('chartSkew');
+  if (skewEl && allM.length) {
+    charts.skew = new Chart(skewEl, {
+      type: 'line',
+      data: {
+        labels: allM.map(m => m.toFixed(1)+'%'),
+        datasets: [
+          { label: 'Puts', data: allM.map(m => { const p = skPuts.find(x=>x.moneyness===m); return p?p.iv:null; }), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.05)', fill: true, tension: 0.3, pointRadius: 1.5, borderWidth: 1.5 },
+          { label: 'Calls', data: allM.map(m => { const c = skCalls.find(x=>x.moneyness===m); return c?c.iv:null; }), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.05)', fill: true, tension: 0.3, pointRadius: 1.5, borderWidth: 1.5 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, spanGaps: true,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 8, padding: 10, font: { size: 9 } } }, tooltip: ttOpts },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.02)' }, title: { display: true, text: 'Moneyness', color: '#44444c', font: { size: 9 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.02)' }, title: { display: true, text: 'IV %', color: '#44444c', font: { size: 9 } } }
+        }
+      }
+    });
+  }
+
+  // Delta
+  const deEntries = dictEntries(d.delta_exposure?.delta_by_strike, spot);
+  const deltaEl = document.getElementById('chartDelta');
+  if (deltaEl && deEntries.length) {
+    charts.delta = new Chart(deltaEl, {
+      type: 'bar',
+      data: {
+        labels: deEntries.map(([s]) => fp(s)),
+        datasets: [{ data: deEntries.map(([,v]) => v), backgroundColor: deEntries.map(([,v]) => v >= 0 ? 'rgba(34,197,94,0.65)' : 'rgba(239,68,68,0.65)'), borderWidth: 0, borderRadius: 1, barPercentage: 0.85 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { ...ttOpts, callbacks: { label: c => '$' + fd(c.raw) } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 50, font: { size: 8 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => '$'+fd(v) } }
+        }
+      }
+    });
+  }
+}
+
+async function loadCurrency(c) {
+  currentCurrency = c;
+  document.querySelectorAll('.currency-tab').forEach(t => t.classList.toggle('active', t.dataset.c === c));
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">loading ' + c + '...</div></div>';
+  try {
+    const r = await fetch('/api/report?currency=' + c);
+    render(await r.json());
+  } catch (e) {
+    document.getElementById('content').innerHTML = `<div class="error-box">${e.message}</div>`;
+  }
+}
+
+document.getElementById('currencyTabs').addEventListener('click', e => { const b = e.target.closest('.currency-tab'); if (b) loadCurrency(b.dataset.c); });
+document.getElementById('btnSnapshot').addEventListener('click', () => window.open('/snapshot?currency=' + currentCurrency, '_blank'));
+
+if (isSnapshot) { render(window.__SNAPSHOT__); document.getElementById('btnSnapshot').style.display = 'none'; }
+else loadCurrency('BTC');
+</script>
+</body>
+</html>
